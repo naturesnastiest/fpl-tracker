@@ -3,7 +3,7 @@ import requests
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder="static")
+app = Flask(__name__, static_folder=".")
 CORS(app)
 
 FPL_EMAIL = os.environ.get("FPL_EMAIL")
@@ -71,7 +71,7 @@ def get_league():
 
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+    return send_from_directory(".", "index.html")
 
 
 if __name__ == "__main__":
