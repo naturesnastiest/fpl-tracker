@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FPL Draft League Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00ff87;
+    --dark-green: #00c96a;
+    --pitch: #0d1f0f;
+    --card: #111f13;
+    --border: #1e3d21;
+    --text: #e8f5e9;
+    --muted: #5a7d5c;
+    --red: #ff4d4d;
+    --gold: #ffd700;
+    --silver: #c0c0c0;
+    --bronze: #cd7f32;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--pitch);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(255,255,255,0.012) 60px, rgba(255,255,255,0.012) 61px),
+      repeating-linear-gradient(0deg, transparent, transparent 80px, rgba(0,0,0,0.15) 80px, rgba(0,0,0,0.15) 160px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    padding: 48px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .badge {
+    display: inline-block;
+    background: var(--green);
+    color: var(--pitch);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 10vw, 88px);
+    letter-spacing: 0.04em;
+    line-height: 0.9;
+  }
+
+  h1 span { color: var(--green); display: block; }
+
+  .subtitle {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 4px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .league-name-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 0.06em;
+    color: var(--green);
+  }
+
+  .refresh-info {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pulse-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    display: inline-block;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .gw-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+
+  .type-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 4px;
+  }
+
+  .type-tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border-radius: 3px 3px 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    cursor: pointer;
+    background: var(--pitch);
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+
+  .type-tab.active { background: var(--card); color: var(--green); }
+
+  .standings { display: flex; flex-direction: column; gap: 6px; }
+
+  .h2h-header, .h2h-row {
+    display: grid;
+    grid-template-columns: 48px 1fr 46px 46px 46px 90px 90px;
+    align-items: center;
+  }
+
+  .h2h-header {
+    padding: 6px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .h2h-row {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+    transition: border-color 0.2s, transform 0.2s;
+    animation: slideIn 0.4s ease both;
+  }
+
+  .h2h-row:hover { border-color: var(--green); transform: translateX(4px); }
+
+  .overall-header, .overall-row {
+    display: grid;
+    grid-template-columns: 48px 1fr 80px 90px 80px;
+    align-items: center;
+  }
+
+  .overall-header {
+    padding: 6px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .overall-row {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+    transition: border-color 0.2s, transform 0.2s;
+    animation: slideIn 0.4s ease both;
+  }
+
+  .overall-row:hover { border-color: var(--green); transform: translateX(4px); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .gold-left { border-left: 3px solid var(--gold) !important; }
+  .silver-left { border-left: 3px solid var(--silver) !important; }
+  .bronze-left { border-left: 3px solid var(--bronze) !important; }
+
+  .col-rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .manager-name { font-size: 15px; font-weight: 600; line-height: 1.2; }
+  .team-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .col-r { text-align: right; font-family: 'DM Mono', monospace; }
+  .col-r.big { font-size: 22px; color: var(--green); }
+  .col-r.med { font-size: 16px; }
+  .col-r.small { font-size: 13px; color: var(--muted); }
+  .col-r.ww { color: var(--green); font-size: 16px; }
+  .col-r.ll { color: var(--red); font-size: 16px; }
+  .col-r.dd { color: var(--muted); font-size: 16px; }
+  .col-r.leading { font-size: 12px; color: var(--green); }
+
+  .loading-state {
+    text-align: center;
+    padding: 80px 20px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+  }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-state {
+    background: rgba(255,77,77,0.08);
+    border: 1px solid rgba(255,77,77,0.3);
+    border-radius: 4px;
+    padding: 20px 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--red);
+    letter-spacing: 0.04em;
+    line-height: 1.8;
+  }
+
+  footer {
+    text-align: center;
+    padding-top: 48px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    opacity: 0.6;
+  }
+
+  @media (max-width: 580px) {
+    .h2h-header, .h2h-row { grid-template-columns: 36px 1fr 36px 36px 36px 80px; }
+    .hide-mobile { display: none; }
+    .overall-header, .overall-row { grid-template-columns: 36px 1fr 75px 75px; }
+    .hide-mobile-o { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge">⚽ Live Draft Tracker</div>
+    <h1>FPL <span>Draft</span></h1>
+    <p class="subtitle">NEAR REAL-TIME · FANTASY PREMIER LEAGUE DRAFT</p>
+  </header>
+
+  <div id="mainContent">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      LOADING LEAGUE DATA...
+    </div>
+  </div>
+
+  <footer>DATA FROM DRAFT.PREMIERLEAGUE.COM · AUTO-REFRESHES EVERY 5 MIN</footer>
+</div>
+
+<script>
+  let refreshTimer = null;
+  let countdownTimer = null;
+  let currentView = 'h2h';
+  let lastData = null;
+
+  async function fetchAndRender() {
+    try {
+      const res = await fetch('/api/league');
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      lastData = data;
+      const isH2H = data.league?.league?.scoring === 'h';
+      if (!isH2H) currentView = 'overall';
+      renderContent();
+      startCountdown();
+    } catch (err) {
+      showError('Could not load league data.\n\nError: ' + err.message);
+    }
+  }
+
+  function renderContent() {
+    if (!lastData) return;
+    const { league: wrapper, current_gw } = lastData;
+    const league = wrapper.league;
+    const entries = wrapper.league_entries || [];
+    const standings = wrapper.standings || [];
+    const isH2H = league.scoring === 'h';
+
+    const em = {};
+    entries.forEach(e => {
+      em[e.id] = {
+        name: (e.player_first_name + ' ' + e.player_last_name).trim(),
+        team: e.entry_name || ''
+      };
+    });
+
+    const statusBar = `
+      <div class="status-bar">
+        <div class="league-name-display">${esc(league.name)}</div>
+        <div class="refresh-info">
+          <span class="pulse-dot"></span>
+          <span>Refreshes in <span id="countdown">5:00</span></span>
+        </div>
+      </div>
+      <div class="gw-tag">Gameweek ${current_gw} · Updated ${fmt(new Date())}</div>
+    `;
+
+    const tabs = isH2H ? `
+      <div class="type-tabs">
+        <div class="type-tab ${currentView==='h2h'?'active':''}" onclick="switchView('h2h')">H2H TABLE</div>
+        <div class="type-tab ${currentView==='overall'?'active':''}" onclick="switchView('overall')">TOTAL PTS</div>
+      </div>
+    ` : '';
+
+    let tableHtml = '';
+
+    if (currentView === 'h2h' && isH2H) {
+      const sorted = [...standings].sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if ((b.goal_difference||0) !== (a.goal_difference||0)) return (b.goal_difference||0) - (a.goal_difference||0);
+        return (b.goals_for||0) - (a.goals_for||0);
+      });
+
+      tableHtml = `<div class="standings">
+        <div class="h2h-header">
+          <div>#</div><div>Manager</div>
+          <div class="col-r">W</div><div class="col-r">D</div><div class="col-r">L</div>
+          <div class="col-r hide-mobile">GW Pts</div>
+          <div class="col-r">H2H Pts</div>
+        </div>`;
+
+      sorted.forEach((s, i) => {
+        const rank = i + 1;
+        const info = em[s.league_entry] || { name: 'Unknown', team: '' };
+        const border = rank===1?'gold-left':rank===2?'silver-left':rank===3?'bronze-left':'';
+        const crown = rank === 1 ? ' 👑' : '';
+        tableHtml += `
+          <div class="h2h-row ${border}" style="animation-delay:${i*0.07}s">
+            <div class="col-rank" style="color:${rc(rank)}">${rank}</div>
+            <div>
+              <div class="manager-name">${esc(info.name)}${crown}</div>
+              <div class="team-name">${esc(info.team)}</div>
+            </div>
+            <div class="col-r ww">${s.matches_won??0}</div>
+            <div class="col-r dd">${s.matches_drawn??0}</div>
+            <div class="col-r ll">${s.matches_lost??0}</div>
+            <div class="col-r med hide-mobile">${s.points_for??'—'}</div>
+            <div class="col-r big">${s.points??0}</div>
+          </div>`;
+      });
+      tableHtml += '</div>';
+
+    } else {
+      const sorted = [...standings].sort((a, b) => {
+        return (b.total??b.points_for??0) - (a.total??a.points_for??0);
+      });
+      const leaderPts = sorted[0] ? (sorted[0].total??sorted[0].points_for??0) : 0;
+
+      tableHtml = `<div class="standings">
+        <div class="overall-header">
+          <div>#</div><div>Manager</div>
+          <div class="col-r">GW Pts</div>
+          <div class="col-r">Total</div>
+          <div class="col-r hide-mobile-o">Gap</div>
+        </div>`;
+
+      sorted.forEach((s, i) => {
+        const rank = i + 1;
+        const info = em[s.league_entry] || { name: 'Unknown', team: '' };
+        const total = s.total??s.points_for??0;
+        const gw = s.event_total??'—';
+        const gap = rank===1 ? 'LEADER' : `−${leaderPts - total}`;
+        const border = rank===1?'gold-left':rank===2?'silver-left':rank===3?'bronze-left':'';
+        const crown = rank===1?' 👑':'';
+
+        tableHtml += `
+          <div class="overall-row ${border}" style="animation-delay:${i*0.07}s">
+            <div class="col-rank" style="color:${rc(rank)}">${rank}</div>
+            <div>
+              <div class="manager-name">${esc(info.name)}${crown}</div>
+              <div class="team-name">${esc(info.team)}</div>
+            </div>
+            <div class="col-r med">${gw}</div>
+            <div class="col-r big">${total}</div>
+            <div class="col-r ${rank===1?'leading':'small'} hide-mobile-o">${gap}</div>
+          </div>`;
+      });
+      tableHtml += '</div>';
+    }
+
+    document.getElementById('mainContent').innerHTML = statusBar + tabs + tableHtml;
+  }
+
+  function switchView(v) { currentView = v; renderContent(); }
+
+  function startCountdown() {
+    if (countdownTimer) clearInterval(countdownTimer);
+    let c = 300;
+    countdownTimer = setInterval(() => {
+      c--;
+      const el = document.getElementById('countdown');
+      if (!el) { clearInterval(countdownTimer); return; }
+      el.textContent = c <= 0 ? 'refreshing...' : `${Math.floor(c/60)}:${String(c%60).padStart(2,'0')}`;
+    }, 1000);
+  }
+
+  function showError(msg) {
+    document.getElementById('mainContent').innerHTML =
+      `<div class="error-state">${esc(msg).replace(/\n/g,'<br>')}</div>`;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmt(d) { return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+
+  function rc(rank) {
+    return rank===1?'var(--gold)':rank===2?'var(--silver)':rank===3?'var(--bronze)':'var(--muted)';
+  }
+
+  // Load on start, then every 5 minutes
+  fetchAndRender();
+  refreshTimer = setInterval(fetchAndRender, 5 * 60 * 1000);
+</script>
+</body>
+</html>
